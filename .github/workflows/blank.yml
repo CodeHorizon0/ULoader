@@ -10,6 +10,10 @@ on:
       - 'requirements.txt'
       - 'icon.ico'
       - '.github/workflows/**'
+      - 'handlers/**'
+      - 'loader/**'
+      - 'ui/**'
+      - 'utils/**'
   workflow_dispatch:
 
 permissions:
@@ -38,24 +42,23 @@ jobs:
         id: version
         shell: pwsh
         run: |
-          $tag = git describe --tags --abbrev=0 2>$null
-          if (-not $tag) {
-            $tag = 'v1.0.0'
+          $ErrorActionPreference = 'Stop'
+
+          git fetch --tags --force | Out-Null
+
+          $tag = (git tag --sort=-version:refname | Select-Object -First 1)
+          $baseVersion = '1.0.5'
+
+          if ($tag -and $tag -match '(\d+)\.(\d+)\.(\d+)') {
+            $baseVersion = "$($Matches[1]).$($Matches[2]).$($Matches[3])"
           }
 
-          $match = [regex]::Match($tag, '(\d+)\.(\d+)\.(\d+)')
-          if ($match.Success) {
-            $major = [int]$match.Groups[1].Value
-            $minor = [int]$match.Groups[2].Value
-            $patch = [int]$match.Groups[3].Value
-          }
-          else {
-            $major = 1
-            $minor = 0
-            $patch = 0
-          }
+          $parts = $baseVersion.Split('.')
+          $major = [int]$parts[0]
+          $minor = [int]$parts[1]
+          $patch = [int]$parts[2]
 
-          $build = [int]$env:GITHUB_RUN_NUMBER
+          $build = ([int]$env:GITHUB_RUN_NUMBER * 10) + [int]$env:GITHUB_RUN_ATTEMPT
           if ($build -gt 65535) {
             $build = $build % 65535
           }
@@ -105,7 +108,7 @@ jobs:
           )
           "@ | Set-Content -Encoding utf8 version.txt
 
-          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "version=$version"
 
       - name: Build executable
         run: pyinstaller main.spec --noconfirm
