@@ -246,6 +246,7 @@ class DownloadWorker(QThread):
                 text=True,
                 encoding="utf-8",
                 errors="replace",
+                creationflags=subprocess.CREATE_NO_WINDOW,
             )
             self._active_process = proc
 
