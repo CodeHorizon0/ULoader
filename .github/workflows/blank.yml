@@ -113,17 +113,12 @@ jobs:
       - name: Build executable
         run: pyinstaller main.spec --noconfirm
 
-      - name: Compress artifact
-        shell: pwsh
-        run: |
-          Compress-Archive -Path dist\ULoader.exe -DestinationPath dist\ULoader-${{ steps.version.outputs.version }}.zip -Force
-
       - name: Publish GitHub release
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "v${{ steps.version.outputs.version }}" "dist\ULoader.exe" "dist\ULoader-${{ steps.version.outputs.version }}.zip" `
+          gh release create "v${{ steps.version.outputs.version }}" "dist\ULoader.exe" `
             --title "ULoader v${{ steps.version.outputs.version }}" `
             --notes "Automated build for commit ${{ github.sha }}" `
             --latest
