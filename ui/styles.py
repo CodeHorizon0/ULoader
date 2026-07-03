@@ -153,10 +153,9 @@ QFrame#metaCard {
 
 QLabel#thumbnailLabel {
     border: 1px solid #353a43;
-    border-radius: 10px;
     background: #171a20;
     color: #aab2bf;
-    padding: 3px;
+    padding: 0px;
 }
 
 QLabel#checkLabel {

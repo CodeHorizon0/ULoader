@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-import re
-from typing import Any, Dict, Optional
-
-import yt_dlp
-
+import re, yt_dlp
+from typing import Any, Dict, Optional, cast
 from utils.media_url import normalize_single_media_url
 from PyQt6.QtCore import QThread, pyqtSignal
 

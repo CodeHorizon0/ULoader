@@ -245,12 +245,11 @@ class DownloaderUI(QWidget):
     def _set_pause_button_state(self, paused: bool) -> None:
         self.pause_button.setText("Продолжить" if paused else "Пауза")
 
-    def closeEvent(self, event: Optional[QCloseEvent]) -> None:
+    def closeEvent(self, a0: QCloseEvent | None) -> None:
         self._stop_link_checker()
         self._stop_download_worker()
-
-        if event:
-            event.accept()
+        if a0 is not None:
+            a0.accept()
 
     def _stop_link_checker(self) -> None:
         if self.link_checker and self.link_checker.isRunning():
@@ -302,7 +301,8 @@ class DownloaderUI(QWidget):
 
     def _sync_meta_preview_height(self) -> None:
         document = self.meta_preview.document()
-        document.adjustSize()
+        if document is None:
+            return
         target = int(document.size().height()) + 18
         target = max(124, min(target, 340))
         self.meta_preview.setFixedHeight(target)
@@ -484,7 +484,7 @@ class DownloaderUI(QWidget):
         self.meta_preview.setHtml(self._render_metadata_html(info))
         self._set_thumbnail_preview(info)
         self._sync_meta_preview_height()
-        self.meta_preview.document().adjustSize()
+        # Удалена строка: self.meta_preview.document().adjustSize()
         self.meta_card.adjustSize()
         self._schedule_window_resize()
 
