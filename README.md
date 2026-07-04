@@ -9,5 +9,4 @@ Universal media downloader for YouTube and other platforms, based on yt-dlp and 
 
 ## Planned features
 - Update checker
-- Downloading queue
 - Selection of audio tracks and subtitles
