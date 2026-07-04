@@ -725,15 +725,19 @@ class DownloadWorker(QThread):
             except Exception:
                 pass
 
+        cover_temp_path = None
+
         thumbnail_source = self._find_thumbnail_source(os.path.splitext(path)[0], info)
         if thumbnail_source:
             image_data = _read_image_bytes_from_source(thumbnail_source)
             if image_data:
                 data, mime_type = image_data
+
                 try:
                     tags.delall("APIC")
                 except Exception:
                     pass
+
                 tags.add(
                     APIC(
                         encoding=3,
@@ -744,7 +748,16 @@ class DownloadWorker(QThread):
                     )
                 )
 
+                if os.path.isfile(thumbnail_source):
+                    cover_temp_path = thumbnail_source
+
         audio.save(v2_version=3)
+
+        if cover_temp_path:
+            try:
+                os.remove(cover_temp_path)
+            except Exception:
+                pass
 
     def _build_ydl_opts(self) -> YDLParams:
         self._wait_if_paused()
