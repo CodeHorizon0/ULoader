@@ -9,7 +9,7 @@ import time
 import urllib.request
 from io import BytesIO
 from typing import Any, Dict, Optional, List, cast
-
+from .hw_detect import get_hwaccels_all
 from mutagen.id3 import ID3
 from mutagen.id3._frames import APIC, COMM, TALB, TCON, TDRC, TIT2, TPE1, TPE2, TRCK, TPOS, TXXX
 from mutagen.mp3 import MP3
@@ -408,6 +408,30 @@ class DownloadWorker(QThread):
         except Exception:
             return None
 
+    def _select_hwaccel(self, encoder: str) -> Optional[str]:
+        available = set(get_hwaccels_all(self.ffmpeg_path or "ffmpeg"))
+
+        gpu_priority = ["cuda", "qsv", "d3d11va", "dxva2", "d3d12va", "vaapi"]
+
+        encoder_map = {
+            "h264_nvenc": ["cuda", "qsv", "d3d11va", "dxva2", "vaapi"],
+            "h264_qsv": ["qsv", "d3d11va", "dxva2", "cuda", "vaapi"],
+            "h264_amf": ["d3d11va", "dxva2", "vaapi", "qsv", "cuda"],
+        }
+
+        preferred = encoder_map.get(encoder, gpu_priority)
+
+        for hw in preferred:
+            if hw in available:
+                return hw
+
+        for hw in gpu_priority:
+            if hw in available:
+                return hw
+
+        return None
+
+
     def _merge_video_audio(self, video_path: str, audio_path: str) -> Optional[str]:
         root, _ = os.path.splitext(video_path)
         output_path = f"{root}.merged.mp4"
@@ -418,43 +442,49 @@ class DownloadWorker(QThread):
 
         hwaccel = self._select_hwaccel(encoder)
 
-        args: List[str] = []
-        if hwaccel:
-            args.extend(["-hwaccel", hwaccel])
-            if hwaccel in ("cuda", "qsv", "vaapi"):
-                args.extend(["-hwaccel_output_format", hwaccel])
+        def build_args(use_hw: bool) -> List[str]:
+            args: List[str] = []
 
-        args.extend([
-            "-fflags", "+genpts",
-            "-i", video_path,
-            "-i", audio_path,
-            "-map", "0:v:0",
-            "-map", "1:a:0",
-            *self._video_encoder_args(encoder),
-            "-pix_fmt", "yuv420p",
-            "-c:a", "aac",
-            "-movflags", "+faststart",
-            output_path,
-        ])
+            if use_hw and hwaccel:
+                args += ["-hwaccel", hwaccel]
 
-        ok, err = self._run_ffmpeg(args)
-        if not ok and encoder != "libx264":
-            fallback_args: List[str] = []
-            if hwaccel:
-                fallback_args.extend(["-hwaccel", hwaccel])
-            fallback_args.extend([
+            args += [
                 "-fflags", "+genpts",
                 "-i", video_path,
                 "-i", audio_path,
                 "-map", "0:v:0",
                 "-map", "1:a:0",
-                *self._video_encoder_args("libx264"),
+            ]
+
+            args += self._video_encoder_args(encoder)
+
+            args += [
                 "-pix_fmt", "yuv420p",
                 "-c:a", "aac",
                 "-movflags", "+faststart",
                 output_path,
-            ])
-            ok, err = self._run_ffmpeg(fallback_args)
+            ]
+
+            return args
+
+        ok, err = self._run_ffmpeg(build_args(True))
+
+        if not ok and encoder != "libx264":
+            ok, err = self._run_ffmpeg(build_args(False))
+
+            if not ok:
+                ok, err = self._run_ffmpeg([
+                    "-fflags", "+genpts",
+                    "-i", video_path,
+                    "-i", audio_path,
+                    "-map", "0:v:0",
+                    "-map", "1:a:0",
+                    *self._video_encoder_args("libx264"),
+                    "-pix_fmt", "yuv420p",
+                    "-c:a", "aac",
+                    "-movflags", "+faststart",
+                    output_path,
+                ])
 
         if not ok:
             self.status.emit(f"Ошибка merge: {err}")
@@ -462,58 +492,53 @@ class DownloadWorker(QThread):
 
         return output_path
 
-    def _get_available_hwaccels(self) -> List[str]:
-        """Возвращает список поддерживаемых аппаратных ускорителей (hwaccel) из ffmpeg -hwaccels."""
-        if self._hwaccels is not None:
-            return self._hwaccels
-
-        ffmpeg_bin = _resolve_ffmpeg_bin(self.ffmpeg_path) or "ffmpeg"
-        hwaccels: List[str] = []
-        try:
-            proc = subprocess.run(
-                [ffmpeg_bin, "-hwaccels"],
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                check=False,
-            )
-            if proc.returncode == 0:
-                for line in proc.stdout.splitlines():
-                    line = line.strip()
-                    if line and not line.startswith("Hardware"):
-                        hwaccels.extend(line.split())
-        except Exception:
-            pass
-
-        self._hwaccels = hwaccels
-        return hwaccels
-
-    def _select_hwaccel(self, encoder: str) -> Optional[str]:
-        """
-        По имени кодера выбирает наиболее подходящий аппаратный ускоритель
-        из доступных (возвращает None, если ничего не подходит).
-        """
-        available = self._get_available_hwaccels()
-        if not available:
-            return None
-
-        # Приоритеты для каждого типа энкодера
-        if encoder == "h264_nvenc":
-            preferred = ["cuda"]
-        elif encoder == "h264_qsv":
-            preferred = ["qsv", "vaapi"]      
-        elif encoder == "h264_amf":
-            preferred = ["d3d11va", "dxva2"]  
-        else:
-            return None
-
-        for pref in preferred:
-            if pref in available:
-                return pref
-        return None
 
     def _normalize_video(self, source_path: str) -> Optional[str]:
+        root, _ = os.path.splitext(source_path)
+        output_path = f"{root}.fix.mp4"
+
+        self._wait_if_paused()
+        encoder = self._detect_hw_encoder()
+        self.status.emit(f"HW encode ({encoder})..." if encoder != "libx264" else "Re-encode (libx264)...")
+
+        hwaccel = self._select_hwaccel(encoder)
+
+        def build_args(use_hw: bool) -> List[str]:
+            args: List[str] = []
+
+            if use_hw and hwaccel:
+                args += ["-hwaccel", hwaccel]
+
+            args += [
+                "-fflags", "+genpts",
+                "-i", source_path,
+            ]
+
+            args += self._video_encoder_args(encoder)
+
+            args += [
+                "-pix_fmt", "yuv420p",
+                "-c:a", "copy",
+                "-movflags", "+faststart",
+                output_path,
+            ]
+
+            return args
+
+        ok, err = self._run_ffmpeg(build_args(True))
+
+        if not ok and encoder != "libx264":
+            ok, err = self._run_ffmpeg(build_args(False))
+
+            if not ok:
+                ok, err = self._run_ffmpeg(build_args(False))
+
+        if not ok:
+            self.status.emit(f"Ошибка: {err}")
+            return None
+
+        return output_path
+
         root, _ = os.path.splitext(source_path)
         output_path = f"{root}.syncfix.mp4"
 
@@ -526,7 +551,6 @@ class DownloadWorker(QThread):
         args: List[str] = []
         if hwaccel:
             args.extend(["-hwaccel", hwaccel])
-            # Для некоторых ускорителей явно указываем формат вывода, чтобы данные оставались на GPU
             if hwaccel in ("cuda", "qsv", "vaapi"):
                 args.extend(["-hwaccel_output_format", hwaccel])
 
@@ -542,12 +566,9 @@ class DownloadWorker(QThread):
 
         ok, err = self._run_ffmpeg(args)
         if not ok and encoder != "libx264":
-            # fallback на софтварный кодек
             fallback_args: List[str] = []
             if hwaccel:
-                # при fallback тоже можно оставить hwaccel, но уберём hwaccel_output_format
                 fallback_args.extend(["-hwaccel", hwaccel])
-                # для надёжности не добавляем -hwaccel_output_format
             fallback_args.extend([
                 "-fflags", "+genpts",
                 "-i", source_path,
