@@ -14,6 +14,9 @@ from mutagen.id3 import ID3
 from mutagen.id3._frames import APIC, COMM, TALB, TCON, TDRC, TIT2, TPE1, TPE2, TRCK, TPOS, TXXX
 from mutagen.mp3 import MP3
 from PIL import Image
+from PyQt6.QtCore import QThread, pyqtSignal
+
+from ui.guilogger import GuiLogger
 
 from utils.media_url import normalize_single_media_url
 
@@ -21,15 +24,26 @@ try:
     import yt_dlp
 except ImportError as exc:
     raise RuntimeError(
-        "Не найден yt-dlp. Установи его командой: pip install -U yt-dlp"
+        "Не найден yt-dlp."
     ) from exc
 
-from PyQt6.QtCore import QThread, pyqtSignal
+def _run_with_retry(fn, attempts=4, base_delay=0.8, exceptions=(Exception)):
+    last_exc = None
 
-from ui.guilogger import GuiLogger
+    for i in range(attempts):
+        try:
+            return fn()
+        except exceptions as exc:
+            last_exc = exc
+            if i < attempts - 1:
+                time.sleep(base_delay * (2 ** i))
+
+    if last_exc is not None:
+        raise last_exc
+
+    raise RuntimeError("Retry failed without captured exception")
 
 YDLParams = Dict[str, Any]
-
 
 def _which_any(names: tuple[str, ...]) -> Optional[str]:
     for name in names:
@@ -399,7 +413,7 @@ class DownloadWorker(QThread):
 
         try:
             with yt_dlp.YoutubeDL(cast(Any, ydl_opts)) as ydl:
-                result = cast(Optional[Dict[str, Any]], ydl.extract_info(self.url, download=True))
+                result = cast(Optional[Dict[str, Any]], _run_with_retry(lambda: _run_with_retry(lambda: ydl.extract_info(self.url, download=True))))
                 if not result:
                     return None
                 return self._get_final_path(ydl, result)
@@ -828,7 +842,7 @@ class DownloadWorker(QThread):
 
                 try:
                     self._wait_if_paused()
-                    result = cast(Optional[Dict[str, Any]], ydl.extract_info(self.url, download=True))
+                    result = cast(Optional[Dict[str, Any]], _run_with_retry(lambda: ydl.extract_info(self.url, download=True)))
                 except DownloadCancelled:
                     raise
                 except Exception as exc:
