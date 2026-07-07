@@ -11,10 +11,7 @@ hiddenimports = []
 hiddenimports += collect_submodules("yt_dlp.extractor")
 hiddenimports += collect_submodules("yt_dlp.postprocessor")
 
-datas = [
-    ("icon.ico", "."),
-    ("version.txt", "."),
-]
+datas = [("icon.ico", ".")]
 
 a = Analysis(
     ["main.py"],
