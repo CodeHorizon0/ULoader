@@ -44,29 +44,12 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
 
-          git fetch --tags --force | Out-Null
-
-          $tag = git tag --sort=-v:refname | Select-Object -First 1
-
-          if ($tag -match '(\d+)\.(\d+)\.(\d+)') {
-            $major = [int]$Matches[1]
-            $minor = [int]$Matches[2]
-            $patch = [int]$Matches[3]
-          }
-          else {
-            $major = 1
-            $minor = 0
-            $patch = 0
-          }
-
           $run = [int]$env:GITHUB_RUN_NUMBER
 
-          # стабильная схема:
-          # patch растёт от run number
-          $patch = $patch + $run
-
-          # build фиксированный (без attempt)
-          $build = $run % 65535
+          $major = 1
+          $minor = 0
+          $patch = $run
+          $build = 0
 
           $version = "$major.$minor.$patch.$build"
 
