@@ -44,11 +44,21 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
 
-          $run = [int]$env:GITHUB_RUN_NUMBER
+          git fetch --tags --force | Out-Null
 
-          $major = 1
-          $minor = 0
-          $patch = $run
+          $lastTag = git tag --list "v*" --sort=-v:refname | Select-Object -First 1
+
+          if ($lastTag -match '^v(\d+)\.(\d+)\.(\d+)') {
+            $major = [int]$Matches[1]
+            $minor = [int]$Matches[2]
+            $patch = [int]$Matches[3] + 1
+          }
+          else {
+            $major = 1
+            $minor = 0
+            $patch = 0
+          }
+
           $build = 0
 
           $version = "$major.$minor.$patch.$build"
