@@ -6,7 +6,4 @@ Universal media downloader for YouTube and other platforms, based on yt-dlp and 
 - thumbnail
 - json metadata
 - GPU Video processing
-
-## Planned features
 - Download retries
-- Selection of audio tracks and subtitles
