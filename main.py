@@ -16,9 +16,9 @@ def main() -> NoReturn:
     app.setApplicationName("ULoader")
     app.setOrganizationName("ULoader")
     app.setApplicationDisplayName("ULoader")
+    app.setWindowIcon(QIcon(resource_path("icon.ico")))
 
     apply_dark_theme(app)
-    app.setWindowIcon(QIcon(resource_path("icon.ico")))
 
     window = DownloaderUI()
     window.show()
