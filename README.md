@@ -8,5 +8,5 @@ Universal media downloader for YouTube and other platforms, based on yt-dlp and 
 - GPU Video processing
 
 ## Planned features
-- Update checker
+- Download retries
 - Selection of audio tracks and subtitles
