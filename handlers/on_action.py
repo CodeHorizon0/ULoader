@@ -4,7 +4,7 @@ from typing import Any, Mapping
 
 
 def on_url_changed(self, _text: str) -> None:
-    self.check_label.setText("Проверка...")
+    self.check_label.setText("Checking...")
     if hasattr(self, "clear_metadata_panel"):
         self.clear_metadata_panel()
     self.format_select.clear()
@@ -16,7 +16,7 @@ def on_url_changed(self, _text: str) -> None:
 
 def on_link_checked(self, valid: bool, info: Mapping[str, Any]) -> None:
     if valid:
-        self.check_label.setText("Ссылка валидна")
+        self.check_label.setText("Link is valid")
         self.current_info = dict(info) if info else {}
 
         if hasattr(self, "_render_metadata"):
@@ -39,7 +39,7 @@ def on_link_checked(self, valid: bool, info: Mapping[str, Any]) -> None:
         if self.type_select.currentText() == "video":
             self.populate_formats_from_info(self.current_info)
     else:
-        self.check_label.setText("Ссылка не валидна")
+        self.check_label.setText("Link is invalid")
         self.current_info = None
         if hasattr(self, "clear_metadata_panel"):
             self.clear_metadata_panel()
@@ -52,4 +52,4 @@ def on_link_checked(self, valid: bool, info: Mapping[str, Any]) -> None:
 
 def on_download_finished(self) -> None:
     self._set_idle_state()
-    self.log("Фоновые задачи завершены")
+    self.log("Background tasks finished")

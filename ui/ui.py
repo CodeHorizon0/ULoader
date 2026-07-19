@@ -47,7 +47,7 @@ class DownloaderUI(QWidget):
     def __init__(self) -> None:
         super().__init__()
 
-        self.setMinimumSize(760, 640)
+        self.setMinimumSize(680, 520)
 
         self.current_info: Optional[dict[str, Any]] = None
         self.worker: Optional[DownloadWorker] = None
@@ -75,9 +75,9 @@ class DownloaderUI(QWidget):
 
         self.url_input = QLineEdit()
         self.url_input.setObjectName("inputField")
-        self.url_input.setPlaceholderText("Вставьте ссылку на видео или аудио")
+        self.url_input.setPlaceholderText("Paste video or audio URL")
 
-        self.check_label = AutoResizeLabel("Готово")
+        self.check_label = AutoResizeLabel("Ready")
         self.check_label.setObjectName("checkLabel")
 
         url_layout.addWidget(self.url_input, 1)
@@ -86,16 +86,16 @@ class DownloaderUI(QWidget):
         main_layout.addWidget(url_title)
         main_layout.addLayout(url_layout)
 
-        settings_title = QLabel("Настройки")
+        settings_title = QLabel("Settings")
         settings_title.setObjectName("sectionTitle")
 
         self.ffmpeg_input = QLineEdit()
         self.ffmpeg_input.setObjectName("inputField")
-        self.ffmpeg_input.setPlaceholderText("Путь к FFmpeg, если нужен вручную")
+        self.ffmpeg_input.setPlaceholderText("FFmpeg path (optional)")
 
         self.cookies_input = QLineEdit()
         self.cookies_input.setObjectName("inputField")
-        self.cookies_input.setPlaceholderText("cookies.txt, если нужен доступ к сайту")
+        self.cookies_input.setPlaceholderText("cookies.txt for site access")
 
         self.type_select = QComboBox()
         self.type_select.setObjectName("selectField")
@@ -106,7 +106,7 @@ class DownloaderUI(QWidget):
         main_layout.addWidget(self.cookies_input)
         main_layout.addWidget(self.type_select)
 
-        self.format_label = QLabel("Качество")
+        self.format_label = QLabel("Quality")
         self.format_label.setObjectName("sectionTitle")
 
         self.format_select = QComboBox()
@@ -122,20 +122,20 @@ class DownloaderUI(QWidget):
         buttons_row.setSpacing(4)
         buttons_row.setContentsMargins(0, 0, 0, 0)
 
-        self.download_button = QPushButton("Скачать")
+        self.download_button = QPushButton("Download")
         self.download_button.setObjectName("downloadButton")
         self.download_button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.download_button.setMaximumHeight(28)
         self.download_button.setMinimumHeight(26)
 
-        self.pause_button = QPushButton("Пауза")
+        self.pause_button = QPushButton("Pause")
         self.pause_button.setObjectName("pauseButton")
         self.pause_button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.pause_button.setMaximumHeight(28)
         self.pause_button.setMinimumHeight(26)
         self.pause_button.setEnabled(False)
 
-        self.cancel_button = QPushButton("Отмена")
+        self.cancel_button = QPushButton("Cancel")
         self.cancel_button.setObjectName("cancelButton")
         self.cancel_button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.cancel_button.setMaximumHeight(28)
@@ -154,7 +154,7 @@ class DownloaderUI(QWidget):
         main_layout.addLayout(buttons_row)
         main_layout.addWidget(self.progress_bar)
 
-        output_title = QLabel("Логи")
+        output_title = QLabel("Logs")
         output_title.setObjectName("sectionTitle")
 
         self.status_log = QTextEdit()
@@ -170,13 +170,13 @@ class DownloaderUI(QWidget):
         preview_column = QVBoxLayout()
         preview_column.setSpacing(8)
 
-        self.preview_title = QLabel("Превью")
+        self.preview_title = QLabel("Preview")
         self.preview_title.setObjectName("subsectionTitle")
 
-        self.thumbnail_label = QLabel("Нет превью")
+        self.thumbnail_label = QLabel("No preview")
         self.thumbnail_label.setObjectName("thumbnailLabel")
         self.thumbnail_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.thumbnail_label.setFixedSize(160, 90)
+        self.thumbnail_label.setFixedSize(128, 72)
         self.thumbnail_label.setWordWrap(True)
 
         preview_column.addWidget(self.preview_title)
@@ -186,13 +186,13 @@ class DownloaderUI(QWidget):
         meta_text_column = QVBoxLayout()
         meta_text_column.setSpacing(8)
 
-        self.meta_title = QLabel("Метаданные")
+        self.meta_title = QLabel("Metadata")
         self.meta_title.setObjectName("subsectionTitle")
 
         self.meta_preview = QTextEdit()
         self.meta_preview.setObjectName("metaPreview")
         self.meta_preview.setReadOnly(True)
-        self.meta_preview.setMinimumHeight(124)
+        self.meta_preview.setMinimumHeight(90)
         self.meta_preview.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
 
         meta_text_column.addWidget(self.meta_title)
@@ -221,9 +221,9 @@ class DownloaderUI(QWidget):
 
     def _set_idle_state(self) -> None:
         self.download_button.setEnabled(True)
-        self.download_button.setText("Скачать")
+        self.download_button.setText("Download")
         self.pause_button.setEnabled(False)
-        self.pause_button.setText("Пауза")
+        self.pause_button.setText("Pause")
         self.cancel_button.setEnabled(False)
         self.ffmpeg_input.setEnabled(True)
         self.cookies_input.setEnabled(True)
@@ -243,7 +243,7 @@ class DownloaderUI(QWidget):
         self.format_select.setEnabled(not busy)
 
     def _set_pause_button_state(self, paused: bool) -> None:
-        self.pause_button.setText("Продолжить" if paused else "Пауза")
+        self.pause_button.setText("Resume" if paused else "Pause")
 
     def closeEvent(self, a0: QCloseEvent | None) -> None:
         self._stop_link_checker()
@@ -295,7 +295,7 @@ class DownloaderUI(QWidget):
         self._set_idle_state()
 
         if cancelled:
-            self.log("Загрузка отменена")
+            self.log("Download cancelled")
         else:
             on_download_finished(self)
 
@@ -304,7 +304,7 @@ class DownloaderUI(QWidget):
         if document is None:
             return
         target = int(document.size().height()) + 18
-        target = max(124, min(target, 340))
+        target = max(90, min(target, 260))
         self.meta_preview.setFixedHeight(target)
 
     def _schedule_window_resize(self) -> None:
@@ -319,10 +319,10 @@ class DownloaderUI(QWidget):
 
     def clear_metadata_panel(self) -> None:
         self.meta_preview.clear()
-        self.meta_preview.setFixedHeight(124)
+        self.meta_preview.setFixedHeight(90)
         self._thumbnail_original = None
         self.thumbnail_label.setPixmap(QPixmap())
-        self.thumbnail_label.setText("Нет превью")
+        self.thumbnail_label.setText("No preview")
         self._schedule_window_resize()
 
     def _format_meta_value(self, value: Any) -> str:
@@ -455,13 +455,13 @@ class DownloaderUI(QWidget):
         if not source:
             self._thumbnail_original = None
             self.thumbnail_label.setPixmap(QPixmap())
-            self.thumbnail_label.setText("Нет превью")
+            self.thumbnail_label.setText("No preview")
             return
 
         pixmap = self._load_pixmap_from_source(source)
         if pixmap is None or pixmap.isNull():
             self.thumbnail_label.setPixmap(QPixmap())
-            self.thumbnail_label.setText("Превью недоступно")
+            self.thumbnail_label.setText("Preview недоступно")
             self._thumbnail_original = None
             return
 
@@ -497,7 +497,7 @@ class DownloaderUI(QWidget):
         url = self.url_input.text().strip()
 
         if not url:
-            self.check_label.setText("Введите ссылку")
+            self.check_label.setText("Enter URL")
             self.clear_metadata_panel()
             return
 
@@ -551,10 +551,10 @@ class DownloaderUI(QWidget):
             if visible:
                 self.format_select.setCurrentIndex(0)
             else:
-                self.log("Видео форматы не найдены")
+                self.log("No video formats found")
 
         except Exception as exc:
-            self.log(f"Ошибка форматов: {exc}")
+            self.log(f"Format error: {exc}")
             self.format_label.hide()
             self.format_select.hide()
 
@@ -574,11 +574,11 @@ class DownloaderUI(QWidget):
         if worker.is_paused():
             worker.resume()
             self._set_pause_button_state(False)
-            self.log("Загрузка продолжена")
+            self.log("Download resumed")
         else:
             worker.pause()
             self._set_pause_button_state(True)
-            self.log("Загрузка поставлена на паузу")
+            self.log("Download paused")
 
     def cancel_download(self) -> None:
         worker = self.worker
@@ -588,7 +588,7 @@ class DownloaderUI(QWidget):
         self._download_cancelled = True
         self.cancel_button.setEnabled(False)
         self.pause_button.setEnabled(False)
-        self.log("Отмена загрузки...")
+        self.log("Cancel загрузки...")
         try:
             worker.cancel()
         except Exception:
@@ -604,7 +604,7 @@ class DownloaderUI(QWidget):
 
         url = self.url_input.text().strip()
         if not url:
-            self.log("Введите ссылку")
+            self.log("Enter URL")
             return
 
         ffmpeg = self.ffmpeg_input.text().strip() or None
@@ -633,6 +633,6 @@ class DownloaderUI(QWidget):
 
         self.progress_bar.setValue(0)
         self._set_busy_state(True)
-        self.download_button.setText("Работаю...")
+        self.download_button.setText("Working...")
         self._set_pause_button_state(False)
         self.worker.start()

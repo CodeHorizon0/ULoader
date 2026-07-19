@@ -24,7 +24,7 @@ try:
     import yt_dlp
 except ImportError as exc:
     raise RuntimeError(
-        "Не найден yt-dlp."
+        "yt-dlp not found."
     ) from exc
 
 def _run_with_retry(fn, attempts=4, base_delay=0.8, exceptions=(Exception)):
@@ -184,7 +184,7 @@ class DownloadWorker(QThread):
     def _raise_if_cancelled(self) -> None:
         if self.isInterruptionRequested():
             self._cancel_running_process()
-            raise DownloadCancelled("Загрузка отменена пользователем")
+            raise DownloadCancelled("Download cancelled by user")
 
     def _cancel_running_process(self) -> None:
         proc = self._active_process
@@ -248,7 +248,7 @@ class DownloadWorker(QThread):
 
         elif status == "finished":
             self.progress.emit(100)
-            self.status.emit("Файл загружен")
+            self.status.emit("File downloaded")
 
     def _run_ffmpeg(self, args: list[str]) -> tuple[bool, str]:
         ffmpeg_bin = _resolve_ffmpeg_bin(self.ffmpeg_path) or "ffmpeg"
@@ -395,7 +395,7 @@ class DownloadWorker(QThread):
     def _download_audio_only(self) -> Optional[str]:
         self._raise_if_cancelled()
         self._wait_if_paused()
-        self.status.emit("Докачка аудио...")
+        self.status.emit("Downloading audio...")
 
         outtmpl = os.path.join(self.base_dir, "%(title).200s_%(id)s.audio.%(ext)s")
 
@@ -452,7 +452,7 @@ class DownloadWorker(QThread):
 
         self._wait_if_paused()
         encoder = self._detect_hw_encoder()
-        self.status.emit("Сборка видео + аудио...")
+        self.status.emit("Merging video and audio...")
 
         hwaccel = self._select_hwaccel(encoder)
 
@@ -501,7 +501,7 @@ class DownloadWorker(QThread):
                 ])
 
         if not ok:
-            self.status.emit(f"Ошибка merge: {err}")
+            self.status.emit(f"Merge error: {err}")
             return None
 
         return output_path
@@ -548,7 +548,7 @@ class DownloadWorker(QThread):
                 ok, err = self._run_ffmpeg(build_args(False))
 
         if not ok:
-            self.status.emit(f"Ошибка: {err}")
+            self.status.emit(f"Error: {err}")
             return None
 
         return output_path
@@ -595,7 +595,7 @@ class DownloadWorker(QThread):
             ok, err = self._run_ffmpeg(fallback_args)
 
         if not ok:
-            self.status.emit(f"Ошибка: {err}")
+            self.status.emit(f"Error: {err}")
             return None
 
         return output_path
@@ -846,11 +846,11 @@ class DownloadWorker(QThread):
                 except DownloadCancelled:
                     raise
                 except Exception as exc:
-                    self.status.emit(f"Предупреждение: {exc}")
+                    self.status.emit(f"Warning: {exc}")
                     result = None
 
                 if not result:
-                    self.status.emit("Ошибка: не удалось получить данные о файле")
+                    self.status.emit("Error: не удалось получить данные о файле")
                     return
 
                 final_path = self._get_final_path(ydl, result)
@@ -867,15 +867,15 @@ class DownloadWorker(QThread):
                         special_path = self._find_generated_special_file(os.path.splitext(prepared)[0], self.mode)
 
                     if special_path:
-                        self.status.emit(f"Готово: {special_path}")
+                        self.status.emit(f"Done: {special_path}")
                     else:
-                        self.status.emit("Готово")
+                        self.status.emit("Ready")
 
-                    self.status.emit("Загрузка и обработка завершены успешно")
+                    self.status.emit("Download completed successfully")
                     return
 
                 if not final_path:
-                    self.status.emit("Ошибка: не удалось определить путь файла")
+                    self.status.emit("Error: не удалось определить путь файла")
                     return
 
                 if self.mode == "video":
@@ -903,9 +903,9 @@ class DownloadWorker(QThread):
                                 pass
 
                         final_path = repaired_path
-                        self.status.emit(f"Готово: {final_path}")
+                        self.status.emit(f"Done: {final_path}")
                     else:
-                        self.status.emit(f"Файл скачан, но фикс не удался: {final_path}")
+                        self.status.emit(f"File downloaded, but post-processing failed: {final_path}")
                 else:
                     if self.mode == "audio":
                         try:
@@ -913,15 +913,15 @@ class DownloadWorker(QThread):
                         except DownloadCancelled:
                             raise
                         except Exception as exc:
-                            self.status.emit(f"Предупреждение: не удалось записать теги: {exc}")
-                    self.status.emit(f"Готово: {final_path}")
+                            self.status.emit(f"Warning: не удалось записать теги: {exc}")
+                    self.status.emit(f"Done: {final_path}")
 
-            self.status.emit("Загрузка и обработка завершены успешно")
+            self.status.emit("Download completed successfully")
 
         except DownloadCancelled as exc:
             self.status.emit(str(exc))
         except Exception as exc:
-            self.status.emit(f"Ошибка: {exc}")
+            self.status.emit(f"Error: {exc}")
 
         finally:
             subprocess.Popen = original_popen  # type: ignore[assignment]

@@ -31,17 +31,17 @@ class LinkCheckWorker(QThread):
 
     def run(self) -> None:
         try:
-            self.status.emit("Проверка ссылки...")
+            self.status.emit("Checking URL...")
 
             if not re.match(r"^https?://", self.url):
-                self.status.emit("Некорректный URL")
+                self.status.emit("Invalid URL")
                 self.checked.emit(False, {})
                 return
 
             with yt_dlp.YoutubeDL(self._build_options()) as ydl:
                 info = ydl.extract_info(self.url, download=False)
                 if not info:
-                    self.status.emit("Не удалось получить информацию о медиа")
+                    self.status.emit("Failed to get media information")
                     self.checked.emit(False, {})
                     return
 
@@ -73,9 +73,9 @@ class LinkCheckWorker(QThread):
                 info_dict["video_formats"] = video_formats
                 info_dict["audio_formats"] = audio_formats
 
-                self.status.emit("Ссылка корректна, метаданные получены")
+                self.status.emit("URL valid, metadata received")
                 self.checked.emit(True, info_dict)
 
         except Exception as exc:
-            self.status.emit(f"Ошибка проверки: {exc}")
+            self.status.emit(f"Check error: {exc}")
             self.checked.emit(False, {})
