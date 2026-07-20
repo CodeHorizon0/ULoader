@@ -67,9 +67,6 @@ class DownloaderUI(QWidget):
         main_layout.setSpacing(LAYOUT["spacing"])
         main_layout.setContentsMargins(*LAYOUT["margins"])
 
-        url_title = QLabel()
-        url_title.setObjectName("sectionTitle")
-
         url_layout = QHBoxLayout()
         url_layout.setSpacing(8)
 
@@ -83,7 +80,6 @@ class DownloaderUI(QWidget):
         url_layout.addWidget(self.url_input, 1)
         url_layout.addWidget(self.check_label, 0)
 
-        main_layout.addWidget(url_title)
         main_layout.addLayout(url_layout)
 
         settings_title = QLabel("Settings")
@@ -152,6 +148,7 @@ class DownloaderUI(QWidget):
         self.progress_bar.setValue(0)
 
         main_layout.addLayout(buttons_row)
+        main_layout.addSpacing(2)
         main_layout.addWidget(self.progress_bar)
 
         output_title = QLabel("Logs")

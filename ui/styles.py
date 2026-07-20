@@ -7,7 +7,7 @@ QLabel#sectionTitle,
 QLabel#subsectionTitle {
     font-weight: 700;
     color: #f2f4f8;
-    padding-top: 2px;
+    padding-top: 0px;
 }
 
 QLabel#sectionTitle {
@@ -116,6 +116,8 @@ QPushButton#cancelButton:disabled {
 }
 
 QProgressBar#progressBar {
+    margin-top: 0px;
+    margin-bottom: 0px;
     border: 1px solid #353a43;
     border-radius: 10px;
     text-align: center;
